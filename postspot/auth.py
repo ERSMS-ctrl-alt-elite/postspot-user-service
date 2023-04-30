@@ -1,3 +1,5 @@
+__all__ = ["OpenIDSession"]
+
 import os
 import json
 import logging
@@ -10,6 +12,8 @@ from google.oauth2 import id_token
 import google.auth.transport.requests
 from pip._vendor import cachecontrol
 
+from postspot.constants import Environment
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +21,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ID = "mystic-stack-382412"
 
 
-def __access_secret_version(secret_id, version_id="latest"):
+def _access_secret_version(secret_id, version_id="latest"):
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 
@@ -32,13 +36,13 @@ def __access_secret_version(secret_id, version_id="latest"):
 
 
 class OpenIDSession:
-    def __init__(self, is_development: bool = False):
+    def __init__(self, env: Environment = Environment.PRODUCTION):
         self._flow: Flow = None
         self._google_id: str = None
         self._name: str = None
         self._email: str = None
 
-        self._initialize_flow(is_development)
+        self._initialize_flow(env)
 
     @property
     def google_id(self) -> str:
@@ -59,14 +63,14 @@ class OpenIDSession:
         self._fetch_credentials(request)
         self._verify_credentials()
 
-    def _initialize_flow(self, is_development: bool):
+    def _initialize_flow(self, env: Environment):
         scopes = [
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "openid",
         ]
 
-        if is_development:
+        if env == Environment.LOCAL:
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
             self._flow = Flow.from_client_secrets_file(
                 client_secrets_file="../client_secret.json",
@@ -76,7 +80,7 @@ class OpenIDSession:
             self._client_id = "1004315401260-cdpumuia14gvmqakrfsq7oim7hkbj6di.apps.googleusercontent.com"
         else:
             client_config = json.loads(
-                __access_secret_version("GOOGLE_AUTH_CLIENT_SECRET")
+                _access_secret_version("GOOGLE_AUTH_CLIENT_SECRET")
             )
             self._flow = Flow.from_client_config(
                 client_config=client_config,

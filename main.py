@@ -1,3 +1,4 @@
+import os
 import logging
 
 from flask import Flask, session, redirect, request, abort
@@ -6,10 +7,13 @@ from flask_migrate import Migrate
 
 from postspot.config import Config
 from postspot.auth import OpenIDSession
+from postspot.constants import Environment
 
 # ---------------------------------------------------------------------------- #
 #                                   App init                                   #
 # ---------------------------------------------------------------------------- #
+
+env = Environment(os.environ["ENV"]) if "ENV" in os.environ else Environment.PRODUCTION
 
 config = Config()
 
@@ -18,15 +22,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+logger.info(f"Running application in {env} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Database.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = config.database_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-openid_session = OpenIDSession(is_development=app.debug)
+openid_session = OpenIDSession(env=env)
 
 
 def login_is_required(function):
@@ -121,4 +126,5 @@ def protected_area():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    debug = env != Environment.PRODUCTION
+    app.run(debug=debug)
