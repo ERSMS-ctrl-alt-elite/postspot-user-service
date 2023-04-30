@@ -1,6 +1,14 @@
 # ERSMS_beer_hangout_app
-## Application functions
-1. Store profiles
-2. Recommend matches
-3. Note matches
-4. Direct messaging
+## Managing database
+Initialize database
+```
+flask --app main.py db init
+```
+Create migrations
+```
+flask --app main.py db migrate
+```
+Apply migrations
+```
+flask --app main.py db upgrade
+```

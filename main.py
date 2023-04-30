@@ -1,9 +1,11 @@
 import logging
 
-from flask import Flask, session, redirect, request
+from flask import Flask, session, redirect, request, abort
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
 from postspot.config import Config
-from postspot.auth import OAuth2Session, login_is_required
+from postspot.auth import OpenIDSession
 
 # ---------------------------------------------------------------------------- #
 #                                   App init                                   #
@@ -14,28 +16,85 @@ config = Config()
 logging.basicConfig(
     level=config.log_level, format="%(relativeCreated)6d %(threadName)s %(message)s"
 )
+logger = logging.getLogger(__name__)
 
-app = Flask("Google Login App")
-app.secret_key = "CodeSpecialist.com"
+app = Flask("PostSpot User Service")
+app.secret_key = "PostSpot123"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Database.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 
-oauth2_session = OAuth2Session(is_development=app.debug)
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+openid_session = OpenIDSession(is_development=app.debug)
+
+
+def login_is_required(function):
+    def wrapper(*args, **kwargs):
+        if "google_id" not in session:
+            return abort(401)  # Authorization required
+        else:
+            return function()
+
+    return wrapper
+
+
+class User(db.Model):
+    google_id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(100))
+    email = db.Column(db.String(70), unique=True)
+
 
 # ---------------------------------------------------------------------------- #
 #                                   Endpoints                                  #
 # ---------------------------------------------------------------------------- #
 
 
+@app.route("/signup")
+def signup():
+    authentication_url, state = openid_session.get_authentication_url_and_state()
+    session["state"] = state
+    session["signup"] = True
+    return redirect(authentication_url)
+
+
 @app.route("/login")
 def login():
-    authorization_url, state = oauth2_session.get_authorization_url_and_state()
+    authentication_url, state = openid_session.get_authentication_url_and_state()
     session["state"] = state
-    return redirect(authorization_url)
+    return redirect(authentication_url)
 
 
 @app.route("/callback")
 def callback():
-    oauth2_session.fetch_token(request)
-    oauth2_session.verify_token()
+    openid_session.authenticate(request)
+
+    if "signup" in session:
+        user = User.query.get(openid_session.google_id)
+        if user:
+            logger.error(
+                f"User {openid_session.name} (google_id={openid_session.google_id})"
+                " already signed up"
+            )
+            return f"User {openid_session.name} already signed up", 422
+
+        user = User(
+            google_id=openid_session.google_id,
+            name=openid_session.name,
+            email=openid_session.email,
+        )
+        db.session.add(user)
+        db.session.commit()
+        session.pop("signup")
+    else:
+        user = User.query.get(openid_session.google_id)
+        if not user:
+            logger.error(
+                f"User {openid_session.name} (google_id={openid_session.google_id}) not"
+                " signed up"
+            )
+            return f"User {openid_session.name} not signed up", 422
+
     return redirect("/protected_area")
 
 
@@ -47,7 +106,10 @@ def logout():
 
 @app.route("/")
 def index():
-    return "Hello World <a href='/login'><button>Login</button></a>"
+    return (
+        "Hello World <br> <a href='/signup'><button>Sign up</button></a> <br> <a"
+        " href='/login'><button>Login</button></a>"
+    )
 
 
 @app.route("/protected_area")
