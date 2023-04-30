@@ -15,7 +15,7 @@ from postspot.constants import Environment
 
 env = Environment(os.environ["ENV"]) if "ENV" in os.environ else Environment.PRODUCTION
 
-config = Config()
+config = Config(env)
 
 logging.basicConfig(
     level=config.log_level, format="%(relativeCreated)6d %(threadName)s %(message)s"
