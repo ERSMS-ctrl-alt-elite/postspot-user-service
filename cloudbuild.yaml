@@ -16,7 +16,7 @@ steps:
       && pip install -r requirements.txt \
       && flask --app main.py db init \
       && flask --app main.py db migrate \
-      && flask --app main.py db upgrade
+      && flask --app main.py db upgrade \
       && deactivate
   - id: Deploy App Engine service 
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
