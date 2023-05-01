@@ -19,6 +19,7 @@
 import os
 
 import sqlalchemy
+from sqlalchemy import text
 
 
 def connect_tcp_socket() -> sqlalchemy.engine.base.Engine:
@@ -95,6 +96,10 @@ def connect_tcp_socket() -> sqlalchemy.engine.base.Engine:
 # [END cloud_sql_mysql_sqlalchemy_sslcerts]
 # [END cloud_sql_mysql_sqlalchemy_connect_tcp]
 
+pool = connect_tcp_socket()
 print("Connecting to MySQL database")
-connect_tcp_socket()
-print("Successfully connected to MySQL databaser")
+with pool.connect() as connection:
+    print("Successfully connected to MySQL databaser")
+    print("Executing select from * user")
+    result = connection.execute(text("select * from user"))
+    print(f"{result=}")
