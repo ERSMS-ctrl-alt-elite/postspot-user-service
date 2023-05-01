@@ -1,6 +1,6 @@
 steps:
   - id: Upgrade database 
-    name: "gcr.io/google-appengine/exec-wrapper"
+    name: python 
     args:
     - |
       curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.2.0/cloud-sql-proxy.linux.amd64 \
