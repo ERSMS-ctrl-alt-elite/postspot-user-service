@@ -28,7 +28,8 @@ def connect_tcp_socket() -> sqlalchemy.engine.base.Engine:
     # secure - consider a more secure solution such as
     # Cloud Secret Manager (https://cloud.google.com/secret-manager) to help
     # keep secrets safe.
-    db_host = "34.116.166.68"
+    # db_host = "34.116.166.68"
+    db_host = "127.0.0.1"
     db_user = "postspot"
     db_pass = "<Po~.igsUFAlYAx"
     db_name = "test-instance"
