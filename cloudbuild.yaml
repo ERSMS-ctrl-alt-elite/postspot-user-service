@@ -1,18 +1,8 @@
 steps:
-  - id: Test MySQL connection
-    name: python
-    entrypoint: "bash"
-    args:
-      [
-        "-c",
-        "pip install SQLAlchemy pymysql && python3 connect_tcp.py"
-      ]
   - id: Upgrade database 
-    name: python
-    entrypoint: "bash"
+    name: "gcr.io/google-appengine/exec-wrapper"
     args:
       [
-        "-c",
         "export ENV=build && python3 -m venv venv && source ./venv/bin/activate && pip install -r requirements.txt && flask --app main.py db migrate && flask --app main.py db upgrade",
       ]
   - id: Deploy App Engine service 
