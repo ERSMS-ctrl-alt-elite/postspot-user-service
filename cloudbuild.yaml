@@ -14,7 +14,7 @@ steps:
       /workspace/cloud-sql-proxy --address 0.0.0.0 --port 3306 mystic-stack-382412:europe-central2:test-instance \
       &  export ENV=build && python3 -m venv venv && source ./venv/bin/activate \
       && pip install -r requirements.txt \
-      && flask --app main.py db stamp head \
+      && flask --app main.py db init \
       && flask --app main.py db migrate \
       && flask --app main.py db upgrade
       && deactivate
