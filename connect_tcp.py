@@ -94,3 +94,7 @@ def connect_tcp_socket() -> sqlalchemy.engine.base.Engine:
 # [END cloud_sql_mysql_sqlalchemy_connect_tcp_sslcerts]
 # [END cloud_sql_mysql_sqlalchemy_sslcerts]
 # [END cloud_sql_mysql_sqlalchemy_connect_tcp]
+
+print("Connecting to MySQL database")
+connect_tcp_socket()
+print("Successfully connected to MySQL databaser")
