@@ -42,7 +42,8 @@ class OpenIDSession:
         self._name: str = None
         self._email: str = None
 
-        self._initialize_flow(env)
+        if env != Environment.DB_ONLY:
+            self._initialize_flow(env)
 
     @property
     def google_id(self) -> str:
