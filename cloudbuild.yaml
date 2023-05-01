@@ -5,7 +5,7 @@ steps:
     args:
       [
         "-c",
-        "export ENV=db_only && python3 -m venv venv && source ./venv/bin/activate && pip install -r requirements.txt && flask --app main.py db migrate && flask --app main.py db upgrade",
+        "export ENV=build && python3 -m venv venv && source ./venv/bin/activate && pip install -r requirements.txt && flask --app main.py db migrate && flask --app main.py db upgrade",
       ]
   - id: Deploy App Engine service 
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"

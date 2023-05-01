@@ -17,4 +17,8 @@ class Config:
     def database_uri(self) -> str:
         if self._env == Environment.LOCAL:
             return "sqlite:///Database.db"
+        if self.env == Environment.BUILD:
+            return (
+                "mysql+pymysql://postspot:<Po~.igsUFAlYAx@34.116.166.68:3306/postspot"
+            )
         return "mysql+pymysql://postspot:<Po~.igsUFAlYAx@/postspot?unix_socket=/cloudsql/mystic-stack-382412:europe-central2:test-instance"

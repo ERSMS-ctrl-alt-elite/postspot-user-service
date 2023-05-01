@@ -42,7 +42,7 @@ class OpenIDSession:
         self._name: str = None
         self._email: str = None
 
-        if env != Environment.DB_ONLY:
+        if env != Environment.BUILD:
             self._initialize_flow(env)
 
     @property
