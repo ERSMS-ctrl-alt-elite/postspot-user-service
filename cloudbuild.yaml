@@ -17,7 +17,8 @@ steps:
       && flask --app main.py db init \
       && flask --app main.py db migrate \
       && flask --app main.py db upgrade \
-      && deactivate
+      && deactivate \
+      && rm -rf ./venv
   - id: Deploy App Engine service 
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
