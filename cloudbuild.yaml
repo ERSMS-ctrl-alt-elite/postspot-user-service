@@ -5,7 +5,7 @@ steps:
     args:
       [
         "-c",
-        "pip install SQLAlchemy && python3 connect_tcp.py"
+        "pip install SQLAlchemy pymysql && python3 connect_tcp.py"
       ]
   - id: Upgrade database 
     name: python
