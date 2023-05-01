@@ -17,6 +17,7 @@ steps:
       && flask --app main.py db stamp head \
       && flask --app main.py db migrate \
       && flask --app main.py db upgrade
+      && deactivate
   - id: Deploy App Engine service 
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
