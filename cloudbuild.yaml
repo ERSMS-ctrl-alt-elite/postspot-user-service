@@ -4,7 +4,7 @@ steps:
     entrypoint: "bash"
     args:
       - -c
-      - wget -O /workspace/cloud_sql_proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.2.0/cloud-sql-proxy.linux.amd64 && chmod +x /workspace/cloud_sql_proxy
+      - wget -O /workspace/cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.2.0/cloud-sql-proxy.linux.amd64 && chmod +x /workspace/cloud_sql_proxy
   - id: Upgrade database 
     name: python 
     args:
