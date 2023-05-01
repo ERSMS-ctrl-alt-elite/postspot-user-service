@@ -1,4 +1,12 @@
 steps:
+  - id: Test MySQL connection
+    name: python
+    entrypoint: "bash"
+    args:
+      [
+        "-c",
+        "pip install SQLAlchemy && python3 connect_tcp.py"
+      ]
   - id: Upgrade database 
     name: python
     entrypoint: "bash"
