@@ -17,7 +17,7 @@ class Config:
     def database_uri(self) -> str:
         if self._env == Environment.LOCAL:
             return "sqlite:///Database.db"
-        if self.env == Environment.BUILD:
+        if self._env == Environment.BUILD:
             return (
                 "mysql+pymysql://postspot:<Po~.igsUFAlYAx@34.116.166.68:3306/postspot"
             )
