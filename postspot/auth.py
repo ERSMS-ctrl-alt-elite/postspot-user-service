@@ -7,32 +7,15 @@ import requests
 
 from flask import session, abort, Request
 from google_auth_oauthlib.flow import Flow
-from google.cloud import secretmanager
 from google.oauth2 import id_token
 import google.auth.transport.requests
 from pip._vendor import cachecontrol
 
 from postspot.constants import Environment
+from postspot.config import access_secret_version
 
 
 logger = logging.getLogger(__name__)
-
-
-PROJECT_ID = "mystic-stack-382412"
-
-
-def _access_secret_version(secret_id, version_id="latest"):
-    # Create the Secret Manager client.
-    client = secretmanager.SecretManagerServiceClient()
-
-    # Build the resource name of the secret version.
-    name = f"projects/{PROJECT_ID}/secrets/{secret_id}/versions/{version_id}"
-
-    # Access the secret version.
-    response = client.access_secret_version(name=name)
-
-    # Return the decoded payload.
-    return response.payload.data.decode("UTF-8")
 
 
 class OpenIDSession:
@@ -81,7 +64,7 @@ class OpenIDSession:
             self._client_id = "1004315401260-cdpumuia14gvmqakrfsq7oim7hkbj6di.apps.googleusercontent.com"
         else:
             client_config = json.loads(
-                _access_secret_version("GOOGLE_AUTH_CLIENT_SECRET")
+                access_secret_version("GOOGLE_AUTH_CLIENT_SECRET")
             )
             self._flow = Flow.from_client_config(
                 client_config=client_config,
