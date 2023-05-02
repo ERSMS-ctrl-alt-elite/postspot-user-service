@@ -118,6 +118,3 @@ class OpenIDSession:
         self._google_id = id_info.get("sub")
         self._name = id_info.get("name")
         self._email = id_info.get("email")
-
-        session["google_id"] = id_info.get("sub")
-        session["name"] = id_info.get("name")

@@ -1,9 +1,12 @@
 import os
 import logging
+from datetime import datetime, timedelta
+from functools import wraps
 
-from flask import Flask, session, redirect, request, abort
+from flask import Flask, session, redirect, request, make_response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+import jwt
 
 from postspot.config import Config
 from postspot.auth import OpenIDSession
@@ -18,11 +21,12 @@ env = Environment(os.environ["ENV"]) if "ENV" in os.environ else Environment.PRO
 config = Config(env)
 
 logging.basicConfig(
-    level=config.log_level, format="%(relativeCreated)6d %(threadName)s %(message)s"
+    level=config.log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-logger.info(f"Running application in {env} environment")
+logger.info(f"Running application in {env.value} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
 app.config["SQLALCHEMY_DATABASE_URI"] = config.database_uri
@@ -34,14 +38,35 @@ migrate = Migrate(app, db)
 openid_session = OpenIDSession(env=env)
 
 
-def login_is_required(function):
+def token_required(function):
+    @wraps(function)
     def wrapper(*args, **kwargs):
-        if "google_id" not in session:
-            return abort(401)  # Authorization required
-        else:
-            return function()
+        token = None
+
+        if "Authorization" in request.headers:
+            bearer = request.headers.get("Authorization")
+            token = bearer.split()[1]
+
+        if not token:
+            return jsonify({"message": "Token not provided"}), 401
+
+        try:
+            logger.debug(token)
+            data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+            logger.debug(data)
+            current_user = User.query.filter_by(google_id=data["google_id"]).first()
+        except Exception as e:
+            logger.error(f"Invalid token: {e}")
+            return jsonify({"message": "Invalid token"}), 401
+
+        return function(current_user, *args, **kwargs)
 
     return wrapper
+
+
+# ---------------------------------------------------------------------------- #
+#                                    Models                                    #
+# ---------------------------------------------------------------------------- #
 
 
 class User(db.Model):
@@ -100,7 +125,16 @@ def callback():
             )
             return f"User {openid_session.name} not signed up", 422
 
-    return redirect("/protected_area")
+    token = jwt.encode(
+        {
+            "google_id": openid_session.google_id,
+            "name": openid_session.name,
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+        },
+        app.config["SECRET_KEY"],
+    )
+
+    return make_response(jsonify({"token": token}))
 
 
 @app.route("/logout")
@@ -111,6 +145,8 @@ def logout():
 
 @app.route("/")
 def index():
+    if "signup" in session:
+        session.pop("signup")
     return (
         "Hello World <br> <a href='/signup'><button>Sign up</button></a> <br> <a"
         " href='/login'><button>Login</button></a>"
@@ -118,10 +154,11 @@ def index():
 
 
 @app.route("/protected_area")
-@login_is_required
-def protected_area():
+@token_required
+def protected_area(current_user: User):
     return (
-        f"Hello {session['name']}! <br/> <a href='/logout'><button>Logout</button></a>"
+        f"Hello {current_user.name}! <br/> <a"
+        " href='/logout'><button>Logout</button></a>"
     )
 
 
