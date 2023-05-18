@@ -4,13 +4,12 @@ from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import Flask, session, redirect, request, make_response, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 import jwt
 
+from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
 from postspot.auth import OpenIDSession
-from postspot.constants import Environment
+from postspot.constants import Environment, AccountStatus
 
 # ---------------------------------------------------------------------------- #
 #                                   App init                                   #
@@ -32,8 +31,7 @@ app.secret_key = "PostSpot123"
 app.config["SQLALCHEMY_DATABASE_URI"] = config.database_uri
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+data_gateway = FirestoreGateway()
 
 openid_session = OpenIDSession(env=env)
 
@@ -54,7 +52,7 @@ def token_required(function):
             logger.debug(token)
             data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
             logger.debug(data)
-            current_user = User.query.filter_by(google_id=data["google_id"]).first()
+            current_user = data_gateway.read_user(data["google_id"])
         except Exception as e:
             logger.error(f"Invalid token: {e}")
             return jsonify({"message": "Invalid token"}), 401
@@ -62,17 +60,6 @@ def token_required(function):
         return function(current_user, *args, **kwargs)
 
     return wrapper
-
-
-# ---------------------------------------------------------------------------- #
-#                                    Models                                    #
-# ---------------------------------------------------------------------------- #
-
-
-class User(db.Model):
-    google_id = db.Column(db.String(50), primary_key=True)
-    name = db.Column(db.String(100))
-    email = db.Column(db.String(70), unique=True)
 
 
 # ---------------------------------------------------------------------------- #
@@ -100,25 +87,22 @@ def callback():
     openid_session.authenticate(request)
 
     if "signup" in session:
-        user = User.query.get(openid_session.google_id)
-        if user:
+        if data_gateway.user_exists(openid_session.google_id):
             logger.error(
                 f"User {openid_session.name} (google_id={openid_session.google_id})"
                 " already signed up"
             )
             return f"User {openid_session.name} already signed up", 422
 
-        user = User(
+        data_gateway.add_user(
             google_id=openid_session.google_id,
             name=openid_session.name,
             email=openid_session.email,
+            account_status=AccountStatus.OPEN,
         )
-        db.session.add(user)
-        db.session.commit()
         session.pop("signup")
     else:
-        user = User.query.get(openid_session.google_id)
-        if not user:
+        if not data_gateway.user_exists(openid_session.google_id):
             logger.error(
                 f"User {openid_session.name} (google_id={openid_session.google_id}) not"
                 " signed up"
