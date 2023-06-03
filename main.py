@@ -154,7 +154,7 @@ def debug_firestore_add():
 
 
 @app.route("/debug/firestore/get")
-def debug_firestore_add():
+def debug_firestore_get():
     return data_gateway.read_user("123")
 
 
