@@ -148,6 +148,16 @@ def protected_area(current_user: User):
     )
 
 
+@app.route("/debug/firestore/add")
+def debug_firestore_add():
+    data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
+
+
+@app.route("/debug/firestore/get")
+def debug_firestore_add():
+    return data_gateway.read_user("123")
+
+
 if __name__ == "__main__":
     debug = env != Environment.PRODUCTION
     app.run(debug=debug)

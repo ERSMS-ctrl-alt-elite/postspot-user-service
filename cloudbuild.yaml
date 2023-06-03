@@ -1,24 +1,4 @@
 steps:
-  - id: Install Cloud SQL Proxy
-    name: gcr.io/cloud-builders/wget
-    entrypoint: "bash"
-    args:
-      - -c
-      - wget -O /workspace/cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.2.0/cloud-sql-proxy.linux.amd64 && chmod +x /workspace/cloud-sql-proxy
-  - id: Upgrade database 
-    name: python 
-    entrypoint: "bash"
-    args:
-    - -c
-    - |
-      /workspace/cloud-sql-proxy --address 0.0.0.0 --port 3306 mystic-stack-382412:europe-central2:test-instance \
-      &  export ENV=build && python3 -m venv venv && source ./venv/bin/activate \
-      && pip install -r requirements.txt \
-      && flask --app main.py db init \
-      && flask --app main.py db migrate \
-      && flask --app main.py db upgrade \
-      && deactivate \
-      && rm -rf ./venv
   - id: Deploy App Engine service 
     name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: "bash"
