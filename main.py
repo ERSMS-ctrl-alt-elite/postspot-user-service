@@ -49,10 +49,24 @@ def token_required(function):
             return jsonify({"message": "Token not provided"}), 401
 
         try:
-            logger.debug(token)
-            data = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
-            logger.debug(data)
-            current_user = data_gateway.read_user(data["google_id"])
+            openid_session.from_token(token)
+
+            token_issued_at_datetime = datetime.fromtimestamp(
+                openid_session.token_issued_at_time
+            )
+            token_exp_datetime = datetime.fromtimestamp(
+                openid_session.token_expiry_time
+            )
+            logger.debug(
+                "Token issued at"
+                f" {token_issued_at_datetime} ({openid_session.token_issued_at_time})"
+            )
+            logger.debug(
+                "Token expires at"
+                f" {token_exp_datetime} ({openid_session.token_expiry_time})"
+            )
+
+            current_user = data_gateway.read_user(openid_session.google_id)
         except Exception as e:
             logger.error(f"Invalid token: {e}")
             return jsonify({"message": "Invalid token"}), 401
@@ -75,7 +89,7 @@ def signup():
     return redirect(authentication_url)
 
 
-@app.route("/login")
+@app.route("/credentials", methods=["GET"])
 def login():
     authentication_url, state = openid_session.get_authentication_url_and_state()
     session["state"] = state
@@ -109,22 +123,10 @@ def callback():
             )
             return f"User {openid_session.name} not signed up", 422
 
-    token = jwt.encode(
-        {
-            "google_id": openid_session.google_id,
-            "name": openid_session.name,
-            "exp": datetime.utcnow() + timedelta(minutes=30),
-        },
-        app.config["SECRET_KEY"],
-    )
+    logger.debug(f"creds={openid_session._flow.credentials}")
+    logger.debug(f"access_token={openid_session._flow.credentials.token}")
 
-    return make_response(jsonify({"token": token}))
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
+    return make_response(jsonify({"token": openid_session._flow.credentials.id_token}))
 
 
 @app.route("/")

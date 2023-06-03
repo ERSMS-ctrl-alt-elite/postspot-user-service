@@ -28,6 +28,23 @@ class OpenIDSession:
         if env != Environment.BUILD:
             self._initialize_flow(env)
 
+    def from_token(self, token: str):
+        request_session = requests.session()
+        cached_session = cachecontrol.CacheControl(request_session)
+        token_request = google.auth.transport.requests.Request(session=cached_session)
+
+        id_info = id_token.verify_oauth2_token(
+            id_token=token, request=token_request, audience=self._client_id
+        )
+
+        logger.debug(f"{id_info=}")
+
+        self._google_id = id_info.get("sub")
+        self._name = id_info.get("name")
+        self._email = id_info.get("email")
+        self._token_issued_at_time = id_info.get("iat")
+        self._token_expiry_time = id_info.get("exp")
+
     @property
     def google_id(self) -> str:
         return self._google_id
@@ -39,6 +56,14 @@ class OpenIDSession:
     @property
     def email(self) -> str:
         return self._email
+
+    @property
+    def token_expiry_time(self) -> int:
+        return self._token_expiry_time
+
+    @property
+    def token_issued_at_time(self) -> int:
+        return self._token_issued_at_time
 
     def get_authentication_url_and_state(self) -> tuple:
         return self._flow.authorization_url()

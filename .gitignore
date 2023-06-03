@@ -2,3 +2,4 @@
 **/.vscode
 *.pyc
 Database.db
+**/.idea
