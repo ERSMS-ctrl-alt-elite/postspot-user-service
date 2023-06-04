@@ -20,3 +20,7 @@ variable "service_name" {
   type = string
   default = "user-service"
 }
+
+variable "latest_image" {
+  type = string
+}

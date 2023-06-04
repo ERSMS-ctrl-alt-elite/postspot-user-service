@@ -8,7 +8,7 @@ resource "google_cloud_run_v2_service" "default" {
 
   template {
     containers {
-      image = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project_id}/${var.app_name}/${var.service_name}:latest"
+      image = var.latest_image 
 
       env {
         name = "CLIENT_ID" 
