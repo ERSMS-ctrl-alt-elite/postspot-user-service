@@ -19,3 +19,9 @@ Run
 ```
 docker run -e ENV=development -e FIRESTORE_EMULATOR_HOST=[::1]:8726 -e GOOGLE_AUTH_CLIENT_SECRET=$GOOGLE_AUTH_CLIENT_SECRET -p 5000:5000 postspot-userservice
 ```
+
+## How to push a docker image to the Artifact Registry
+```
+docker tag <image_id> europe-central2-docker.pkg.dev/postspot-388715/postspot/user-service
+docker push europe-central2-docker.pkg.dev/postspot-388715/postspot/user-service
+```

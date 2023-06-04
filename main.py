@@ -1,14 +1,13 @@
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
 
-from flask import Flask, session, redirect, request, make_response, jsonify
-import jwt
+from flask import Flask, request, jsonify
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
-from postspot.auth import OpenIDSession
+from postspot.auth import decode_openid_token
 from postspot.constants import Environment, AccountStatus
 
 # ---------------------------------------------------------------------------- #
@@ -31,10 +30,8 @@ app.secret_key = "PostSpot123"
 
 data_gateway = FirestoreGateway()
 
-openid_session = OpenIDSession(env=env)
 
-
-def token_required(function):
+def user_signed_up(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
         token = None
@@ -47,27 +44,29 @@ def token_required(function):
             return jsonify({"message": "Token not provided"}), 401
 
         try:
-            openid_session.from_token(token)
+            (
+                google_id,
+                name,
+                email,
+                token_issued_t,
+                token_expired_t,
+            ) = decode_openid_token(token)
 
-            token_issued_at_datetime = datetime.fromtimestamp(
-                openid_session.token_issued_at_time
-            )
-            token_exp_datetime = datetime.fromtimestamp(
-                openid_session.token_expiry_time
-            )
+            token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
+            token_exp_datetime = datetime.fromtimestamp(token_expired_t)
             logger.debug(
-                "Token issued at"
-                f" {token_issued_at_datetime} ({openid_session.token_issued_at_time})"
+                f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
             )
-            logger.debug(
-                "Token expires at"
-                f" {token_exp_datetime} ({openid_session.token_expiry_time})"
-            )
+            logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
-            current_user = data_gateway.read_user(openid_session.google_id)
+            try:
+                current_user = data_gateway.read_user(google_id)
+            except Exception as e:
+                logger.error(f"User not signed up: {e}")
+                return jsonify({"message": "Invalid token or user not signed up"}), 401
         except Exception as e:
             logger.error(f"Invalid token: {e}")
-            return jsonify({"message": "Invalid token"}), 401
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
 
         return function(current_user, *args, **kwargs)
 
@@ -79,81 +78,50 @@ def token_required(function):
 # ---------------------------------------------------------------------------- #
 
 
-@app.route("/signup")
+@app.route("/signup", methods=["POST"])
 def signup():
-    authentication_url, state = openid_session.get_authentication_url_and_state()
-    session["state"] = state
-    session["signup"] = True
-    return redirect(authentication_url)
+    token = None
 
+    if "Authorization" in request.headers:
+        bearer = request.headers.get("Authorization")
+        token = bearer.split()[1]
 
-@app.route("/credentials", methods=["GET"])
-def login():
-    authentication_url, state = openid_session.get_authentication_url_and_state()
-    session["state"] = state
-    return redirect(authentication_url)
+    if not token:
+        return jsonify({"message": "Token not provided"}), 401
 
+    logger.debug(f"{token=}")
 
-@app.route("/callback")
-def callback():
-    openid_session.authenticate(request)
+    google_id, name, email, token_issued_t, token_expired_t = decode_openid_token(token)
 
-    if "signup" in session:
-        if data_gateway.user_exists(openid_session.google_id):
-            logger.error(
-                f"User {openid_session.name} (google_id={openid_session.google_id})"
-                " already signed up"
-            )
-            return f"User {openid_session.name} already signed up", 422
+    if data_gateway.user_exists(google_id):
+        logger.error(f"User {name} (google_id={google_id}) already signed up")
+        return f"User {name} already signed up", 422
 
-        data_gateway.add_user(
-            google_id=openid_session.google_id,
-            name=openid_session.name,
-            email=openid_session.email,
-            account_status=AccountStatus.OPEN,
-        )
-        session.pop("signup")
-    else:
-        if not data_gateway.user_exists(openid_session.google_id):
-            logger.error(
-                f"User {openid_session.name} (google_id={openid_session.google_id}) not"
-                " signed up"
-            )
-            return f"User {openid_session.name} not signed up", 422
-
-    logger.debug(f"creds={openid_session._flow.credentials}")
-    logger.debug(f"access_token={openid_session._flow.credentials.token}")
-
-    return make_response(jsonify({"token": openid_session._flow.credentials.id_token}))
-
-
-@app.route("/")
-def index():
-    if "signup" in session:
-        session.pop("signup")
-    return (
-        "Hello World <br> <a href='/signup'><button>Sign up</button></a> <br> <a"
-        " href='/login'><button>Login</button></a>"
+    data_gateway.add_user(
+        google_id=google_id,
+        name=name,
+        email=email,
+        account_status=AccountStatus.OPEN,
     )
 
+    return f"User {name} created", 201
 
-@app.route("/protected_area")
-@token_required
+
+@app.route("/protected_area", methods=["GET"])
+@user_signed_up
 def protected_area(current_user: User):
-    return (
-        f"Hello {current_user.name}! <br/> <a"
-        " href='/logout'><button>Logout</button></a>"
-    )
+    return f"Hello {current_user.name}!"
 
 
-@app.route("/debug/firestore/add")
+@app.route("/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
     data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
+    return "TestUser added", 201
 
 
-@app.route("/debug/firestore/get")
+@app.route("/debug/firestore/get", methods=["GET"])
 def debug_firestore_get():
-    return data_gateway.read_user("123")
+    return str(data_gateway.read_user("123"))
 
 
 if __name__ == "__main__":
