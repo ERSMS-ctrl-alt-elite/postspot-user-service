@@ -1,10 +1,14 @@
 steps:
-  - id: Deploy App Engine service 
-    name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "bash"
-    args:
-      [
-        "-c",
-        "gcloud config set app/cloud_build_timeout 1600 && gcloud app deploy",
-      ]
+# Build the container image
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}', '.' ]
+# Push the container image to Artifact Registry
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
+# Deploy container image to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: ['run', 'deploy', '${_IMAGE}', '--image', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}', '--region', '${_LOCATION}']
+images:
+- '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
 timeout: "1600s"
