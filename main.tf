@@ -2,13 +2,13 @@
 /*                          Define Cloud Run service                          */
 /* -------------------------------------------------------------------------- */
 resource "google_cloud_run_v2_service" "default" {
-  name     = "user-service"
-  location = "europe-central2"
+  name     = "${var.service_name}-${var.environment}"
+  location = var.gcp_region 
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
     containers {
-      image = "europe-central2-docker.pkg.dev/postspot-388715/postspot/user-service:latest"
+      image = "${var.gcp_region}-docker.pkg.dev/${var.gcp_project_id}/${var.app_name}/${var.service_name}:latest"
 
       env {
         name = "CLIENT_ID" 

@@ -1,6 +1,7 @@
 terraform {
   backend "gcs" {
-    prefix = "terraform/state"
+    bucket = "${var.gcp_project_id}-tf-state"
+    prefix = "env/${var.environment}"
   }
 
   required_providers {

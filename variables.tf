@@ -4,5 +4,19 @@ variable "gcp_project_id" {
 
 variable "gcp_region" {
   type    = string
-  default = "us-central1"
+  default = "europe-central2"
+}
+
+variable "environment" {
+  type = string
+}
+
+variable "app_name" {
+  type = string
+  default = "postspot"
+}
+
+variable "service_name" {
+  type = string
+  default = "user-service"
 }
