@@ -28,6 +28,11 @@ steps:
           --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image.env
       source latest_image.env
 
+      echo "LATEST_IMAGE=${TF_VAR_latest_image}"
+
+      echo "latest_image.env"
+      cat latest_image.env
+
 - id: 'Prepare and apply Terraform migration'
   name: 'hashicorp/terraform:1.0.0'
   entrypoint: 'sh'
