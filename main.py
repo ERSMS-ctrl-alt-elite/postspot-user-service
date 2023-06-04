@@ -131,4 +131,4 @@ def test_endpoint1():
 
 if __name__ == "__main__":
     debug = env != Environment.PRODUCTION
-    app.run(debug=debug)
+    app.run(debug=debug, port=8080)
