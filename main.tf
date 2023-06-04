@@ -9,6 +9,16 @@ resource "google_cloud_run_v2_service" "default" {
   template {
     containers {
       image = "europe-central2-docker.pkg.dev/postspot-388715/postspot/user-service:latest"
+
+      env {
+        name = "CLIENT_ID" 
+        value_source {
+          secret_key_ref {
+            secret = "CLIENT_ID"
+            version = "1"
+          }
+        }
+      }
     }
   }
 }
