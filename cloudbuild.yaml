@@ -14,12 +14,12 @@ steps:
   args: 
   - '-c'
   - | 
-      echo "Running gcloud artifacts docker images list \
-          ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
-          --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
-          --sort-by="~UPDATE_TIME" \
-          --limit=1 \
-          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image.env"
+      echo "LOCATION=${_LOCATION}"
+      echo "PROJECT_ID=${PROJECT_ID}"
+      echo "REPO=${_REPOSITORY}"
+      echo "IMAGE=${_IMAGE}"
+      echo "ENV=${_ENVIRONMENT}"
+
       gcloud artifacts docker images list \
           ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
           --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
