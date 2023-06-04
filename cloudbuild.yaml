@@ -14,7 +14,7 @@ steps:
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
 
-        export TF_VAR_gcp_project_id=$GOOGLE_CLOUD_PROJECT
+        export TF_VAR_gcp_project_id=$PROJECT_ID
         export TF_VAR_environment=$BRANCH_NAME
 
         terraform init
