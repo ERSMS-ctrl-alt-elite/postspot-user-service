@@ -19,7 +19,7 @@ steps:
           --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
           --sort-by="~UPDATE_TIME" \
           --limit=1 \
-          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image_tag.env
+          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > /workspace/latest_image_tag.env
 
 - id: 'Prepare and apply Terraform migration'
   name: 'hashicorp/terraform:1.0.0'
@@ -30,7 +30,7 @@ steps:
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
 
-        source latest_image_tag.env
+        source /workspace/latest_image_tag.env
         export TF_VAR_gcp_project_id=$PROJECT_ID
         export TF_VAR_environment=$BRANCH_NAME
 
