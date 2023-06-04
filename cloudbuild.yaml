@@ -5,7 +5,16 @@ steps:
 - id: Push the container image to Artifact Registry
   name: 'gcr.io/cloud-builders/docker'
   args: [ 'push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}']
-- id: 'terraform plan'
+- id: 'Prepare for Terraform migration'
+  name: 'hashicorp/terraform:1.0.0'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - | 
+      terraform init
+      terraform fmt -check
+      terraform validate
+- id: 'Prepare Terraform migration plan'
   name: 'hashicorp/terraform:1.0.0'
   entrypoint: 'sh'
   args: 
@@ -28,7 +37,7 @@ steps:
           cd ../../
         done
       fi 
-- id: 'terraform apply'
+- id: 'Apply Terraform migration'
   name: 'hashicorp/terraform:1.0.0'
   entrypoint: 'sh'
   args: 
