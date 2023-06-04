@@ -21,7 +21,7 @@ steps:
       echo "ENV=${_ENVIRONMENT}"
 
       gcloud artifacts docker images list \
-          ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
+          ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY} \
           --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
           --sort-by="~UPDATE_TIME" \
           --limit=1 \
