@@ -1,10 +1,27 @@
 steps:
+
 - id: Build the container image
   name: 'gcr.io/cloud-builders/docker'
   args: [ 'build', '-t', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}', '.' ]
+
 - id: Push the container image to Artifact Registry
   name: 'gcr.io/cloud-builders/docker'
   args: [ 'push', '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}']
+
+- id: Get latest image tag
+  name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'sh'
+  args: 
+  - '-c'
+  - | 
+      gcloud artifacts docker images list \
+          ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
+          --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
+          --sort-by="~UPDATE_TIME" \
+          --limit=1 \
+          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image.env
+      source latest_image.env
+
 - id: 'Prepare and apply Terraform migration'
   name: 'hashicorp/terraform:1.0.0'
   entrypoint: 'sh'
@@ -34,6 +51,7 @@ steps:
         echo "Branch '$BRANCH_NAME' does not represent an official environment."
         echo "*******************************************************************************"
       fi 
+
 images:
 - '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
 timeout: "1600s"
