@@ -10,10 +10,16 @@ steps:
 
 - id: Get latest image tag
   name: 'gcr.io/cloud-builders/gcloud'
-  entrypoint: 'sh'
+  entrypoint: 'bash'
   args: 
   - '-c'
   - | 
+      echo "Running gcloud artifacts docker images list \
+          ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
+          --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
+          --sort-by="~UPDATE_TIME" \
+          --limit=1 \
+          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image.env"
       gcloud artifacts docker images list \
           ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
           --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
@@ -31,13 +37,6 @@ steps:
       if [ -d "environments/$BRANCH_NAME/" ]; then
         cd environments/$BRANCH_NAME
 
-        gcloud artifacts docker images list \
-            ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
-            --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
-            --sort-by="~UPDATE_TIME" \
-            --limit=1 \
-            --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > latest_image.env
-        source latest_image.env
         export TF_VAR_gcp_project_id=$PROJECT_ID
         export TF_VAR_environment=$BRANCH_NAME
 
