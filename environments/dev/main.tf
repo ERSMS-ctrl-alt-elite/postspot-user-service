@@ -1,1 +1,1 @@
-prod/main.tf
+../prod/main.tf

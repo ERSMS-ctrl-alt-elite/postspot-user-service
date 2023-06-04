@@ -1,1 +1,1 @@
-prod/variables.tf
+../prod/variables.tf
