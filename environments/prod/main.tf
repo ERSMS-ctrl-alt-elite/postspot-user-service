@@ -8,7 +8,7 @@ resource "google_cloud_run_v2_service" "default" {
 
   template {
     containers {
-      image = var.latest_image 
+      image = var.latest_image_tag
 
       env {
         name = "CLIENT_ID" 

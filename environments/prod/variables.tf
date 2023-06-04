@@ -21,6 +21,6 @@ variable "service_name" {
   default = "user-service"
 }
 
-variable "latest_image" {
+variable "latest_image_tag" {
   type = string
 }

@@ -19,7 +19,7 @@ steps:
           --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
           --sort-by="~UPDATE_TIME" \
           --limit=1 \
-          --format="value(format("export\ TF_VAR_latest_image={0}@{1}",package,version))" > /workspace/latest_image_tag.env
+          --format="value(format("export\ TF_VAR_latest_image_tag={0}@{1}",package,version))" > /workspace/latest_image_tag.env
 
 - id: 'Prepare and apply Terraform migration'
   name: 'hashicorp/terraform:1.0.0'
@@ -46,5 +46,5 @@ steps:
       fi 
 
 images:
-- '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}'
+- '${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}'
 timeout: "1600s"
