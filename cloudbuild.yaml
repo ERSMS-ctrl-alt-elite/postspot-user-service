@@ -15,7 +15,7 @@ steps:
         cd environments/$BRANCH_NAME
 
         export TF_VAR_latest_image=$(gcloud artifacts docker images list \
-                                    ${REGION}-docker.pkg.dev/${PROJECT}/${REPO} \
+                                    ${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}} \
                                     --filter="package=${_LOCATION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE}-${_ENVIRONMENT}" \
                                     --sort-by="~UPDATE_TIME" \
                                     --limit=1 \
