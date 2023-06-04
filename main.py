@@ -124,6 +124,11 @@ def debug_firestore_get():
     return str(data_gateway.read_user("123"))
 
 
+@app.route("/test_endpoint1")
+def test_endpoint1():
+    return "Hello from test endpoint 1"
+
+
 if __name__ == "__main__":
     debug = env != Environment.PRODUCTION
     app.run(debug=debug)
