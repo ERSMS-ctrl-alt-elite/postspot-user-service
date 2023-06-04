@@ -12,7 +12,6 @@ import google.auth.transport.requests
 from pip._vendor import cachecontrol
 
 from postspot.constants import Environment
-from postspot.config import access_secret_version
 
 
 logger = logging.getLogger(__name__)
@@ -81,16 +80,15 @@ class OpenIDSession:
 
         if env == Environment.LOCAL:
             os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-            self._flow = Flow.from_client_secrets_file(
-                client_secrets_file="../client_secret.json",
+            client_config = json.loads(os.environ["GOOGLE_AUTH_CLIENT_SECRET"])
+            self._flow = Flow.from_client_config(
+                client_config=client_config,
                 scopes=scopes,
                 redirect_uri="http://localhost:5000/callback",
             )
             self._client_id = "1004315401260-cdpumuia14gvmqakrfsq7oim7hkbj6di.apps.googleusercontent.com"
         else:
-            client_config = json.loads(
-                access_secret_version("GOOGLE_AUTH_CLIENT_SECRET")
-            )
+            client_config = json.loads(os.environ["GOOGLE_AUTH_CLIENT_SECRET"])
             self._flow = Flow.from_client_config(
                 client_config=client_config,
                 scopes=scopes,

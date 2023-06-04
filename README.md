@@ -1,14 +1,21 @@
 # ERSMS_beer_hangout_app
-## Managing database
-Initialize database
+## How to set up local development environment
+Start Firestore emulator.
 ```
-flask --app main.py db init
+gcloud emulators firestore start
 ```
-Create migrations
+Export FIRESTORE_EMULATOR_HOST variable.
+Ensure that you have ../client_secret.json file.
+Run local development server.
 ```
-flask --app main.py db migrate
+ENV=local python3 main.py
 ```
-Apply migrations
+## How to build and run docker image
+Build
 ```
-flask --app main.py db upgrade
+docker build -t postspot-userservice .
+```
+Run
+```
+docker run -e ENV=development -e FIRESTORE_EMULATOR_HOST=[::1]:8726 -e GOOGLE_AUTH_CLIENT_SECRET=$GOOGLE_AUTH_CLIENT_SECRET -p 5000:5000 postspot-userservice
 ```

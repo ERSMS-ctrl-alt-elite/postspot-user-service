@@ -28,8 +28,6 @@ logger = logging.getLogger(__name__)
 logger.info(f"Running application in {env.value} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
-app.config["SQLALCHEMY_DATABASE_URI"] = config.database_uri
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 
 data_gateway = FirestoreGateway()
 

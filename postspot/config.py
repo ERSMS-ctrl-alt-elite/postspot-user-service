@@ -38,24 +38,6 @@ class Config:
         self._config = configparser.ConfigParser()
         self._config.read("config.ini")
 
-        if self._env != Environment.LOCAL:
-            self._database_config = json.loads(access_secret_version("DATABASE_CONFIG"))
-
     @property
     def log_level(self) -> str:
         return self._config["DEFAULT"]["log_level"]
-
-    @property
-    def database_uri(self) -> str:
-        if self._env == Environment.LOCAL:
-            return "sqlite:///Database.db"
-
-        user = self._database_config["user"]
-        password = self._database_config["password"]
-
-        if self._env == Environment.BUILD:
-            return f"mysql+pymysql://{user}:{password}@127.0.0.1:3306/postspot"
-
-        connection_name = self._database_config["connection_name"]
-
-        return f"mysql+pymysql://{user}:{password}@/postspot?unix_socket=/cloudsql/{connection_name}"
