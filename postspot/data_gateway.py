@@ -124,7 +124,9 @@ class FirestoreGateway(DataGateway):
         doc = doc_ref.get()
         if not doc.exists:
             raise UserNotFoundError(follower_google_id)
-        
+        if not self._db.collection("users").document(followee_google_id).exists:
+            raise UserNotFoundError(followee_google_id)
+
         user = User.from_dict(doc.to_dict())
         followees_set = set(user.followees)
         followees_set.add(followee_google_id)
@@ -137,7 +139,7 @@ class FirestoreGateway(DataGateway):
         doc = doc_ref.get()
         if not doc.exists:
             raise UserNotFoundError(follower_google_id)
-        
+
         user = User.from_dict(doc.to_dict())
         user.followees.remove(followee_google_id)
         doc_ref.set(user.to_dict())
