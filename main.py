@@ -146,24 +146,32 @@ def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
+@app.route("/api/v1/test_endpoint1")
+def versioned_test_endpoint():
+    return "Hello from versioned test endpoint 1"
+
+
 @user_signed_up
 @app.route("/api/v1/users/<follower_google_id>/followees", methods=["POST", "GET"])
 def follow_user(current_user: User, follower_google_id: str):
     if request.method == "POST":
         if "google_id" not in request.json:
             return "body must contain google_id", 400
-        
+
         if follower_google_id != current_user.google_id:
             return "Unauthorized to follow on behalf of other users", 401
-        
-        followee_google_id = request.json["google_id"]   
+
+        followee_google_id = request.json["google_id"]
         data_gateway.follow_user(follower_google_id, followee_google_id)
 
     return data_gateway.read_user(follower_google_id).followees
 
 
 @user_signed_up
-@app.route("/api/v1/users/<follower_google_id>/followees/<followee_google_id>", methods=["DELETE"])
+@app.route(
+    "/api/v1/users/<follower_google_id>/followees/<followee_google_id>",
+    methods=["DELETE"],
+)
 def delete_followee(current_user, follower_google_id, followee_google_id):
     if follower_google_id != current_user.google_id:
         return "Unauthorized to follow on behalf of other users", 401
