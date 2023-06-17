@@ -146,6 +146,27 @@ def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
+# TODO @user_signed_up
+@app.route("/api/v1/users/<follower_google_id>/followees", methods=["POST", "GET"])
+def follow_user(follower_google_id):
+    if request.method == "POST":
+        if "google_id" in request.json:
+            followee_google_id = request.json["google_id"]
+            # TODO add user verification
+            data_gateway.follow_user(follower_google_id, followee_google_id)
+        else:
+            return "body must contain google_id", 400
+    return data_gateway.read_user(follower_google_id).followees
+
+
+# TODO @user_signed_up
+@app.route("/api/v1/users/<follower_google_id>/followees/<followee_google_id>", methods=["DELETE"])
+def delete_followee(follower_google_id, followee_google_id):
+    # TODO verify follower_google_id with openid token
+    data_gateway.unfollow_user(follower_google_id, followee_google_id)
+    return "User unfollowed", 204
+
+
 if __name__ == "__main__":
     debug = env != Environment.PRODUCTION
     app.run(debug=debug, port=8080)

@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import List
 
 from google.cloud import firestore
 
@@ -26,11 +27,13 @@ class User:
         name: str = None,
         email: str = None,
         account_status: AccountStatus = None,
+        followees = []
     ):
         self.google_id = google_id
         self.name = name
         self.email = email
         self.account_status = account_status
+        self.followees = followees
 
     @staticmethod
     def from_dict(source):
@@ -39,6 +42,7 @@ class User:
             source.get("name"),
             source.get("email"),
             AccountStatus(source.get("account_status")),
+            source.get("followees")
         )
 
     def to_dict(self) -> dict:
@@ -47,6 +51,7 @@ class User:
             "name": self.name,
             "email": self.email,
             "account_status": self.account_status.value,
+            "followees": self.followees,
         }
 
     def __repr__(self):
@@ -70,6 +75,14 @@ class DataGateway(ABC):
 
     @abstractmethod
     def user_exists(self, google_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def follow_user(self, follower_google_id: str, followee_google_id):
+        pass
+
+    @abstractmethod
+    def unfollow_user(self, follower_google_id: str, followee_google_id):
         pass
 
 
@@ -105,3 +118,26 @@ class FirestoreGateway(DataGateway):
         doc_ref = self._db.collection("users").document(google_id)
         doc = doc_ref.get()
         return doc.exists
+
+    def follow_user(self, follower_google_id: str, followee_google_id):
+        doc_ref = self._db.collection("users").document(follower_google_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise UserNotFoundError(follower_google_id)
+        
+        user = User.from_dict(doc.to_dict())
+        followees_set = set(user.followees)
+        followees_set.add(followee_google_id)
+        user.followees = followees_set
+        doc_ref.set(user.to_dict())
+
+
+    def unfollow_user(self, follower_google_id: str, followee_google_id):
+        doc_ref = self._db.collection("users").document(follower_google_id)
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise UserNotFoundError(follower_google_id)
+        
+        user = User.from_dict(doc.to_dict())
+        user.followees.remove(followee_google_id)
+        doc_ref.set(user.to_dict())
