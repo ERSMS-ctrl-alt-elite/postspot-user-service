@@ -95,7 +95,7 @@ def index():
     return "Hello from PostSpot's user service"
 
 
-@app.route("/signup", methods=["POST"])
+@app.route("/users", methods=["POST"])
 def signup():
     token = None
 
@@ -146,13 +146,8 @@ def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
-@app.route("/api/v1/test_endpoint1")
-def versioned_test_endpoint():
-    return "Hello from versioned test endpoint 1"
-
-
 @user_signed_up
-@app.route("/api/v1/users/<follower_google_id>/followees", methods=["POST", "GET"])
+@app.route("/users/<follower_google_id>/followees", methods=["POST", "GET"])
 def follow_user(current_user: User, follower_google_id: str):
     if request.method == "POST":
         if "google_id" not in request.json:
@@ -169,7 +164,7 @@ def follow_user(current_user: User, follower_google_id: str):
 
 @user_signed_up
 @app.route(
-    "/api/v1/users/<follower_google_id>/followees/<followee_google_id>",
+    "/users/<follower_google_id>/followees/<followee_google_id>",
     methods=["DELETE"],
 )
 def delete_followee(current_user, follower_google_id, followee_google_id):
