@@ -95,7 +95,7 @@ def index():
     return "Hello from PostSpot's user service"
 
 
-@app.route("/signup", methods=["POST"])
+@app.route("/users", methods=["POST"])
 def signup():
     token = None
 
@@ -170,7 +170,8 @@ def get_followees(follower_google_id):
 
 @user_signed_up
 @app.route(
-    "/users/<follower_google_id>/followees/<followee_google_id>", methods=["DELETE"]
+    "/users/<follower_google_id>/followees/<followee_google_id>",
+    methods=["DELETE"],
 )
 def delete_followee(current_user, follower_google_id, followee_google_id):
     if follower_google_id != current_user.google_id:
