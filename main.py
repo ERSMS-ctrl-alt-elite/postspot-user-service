@@ -133,6 +133,7 @@ def protected_area(current_user: User):
 @app.route("/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
     data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
+    data_gateway.add_user("456", "Test2User", "test2@gmail.com", AccountStatus.OPEN)
     return "TestUser added", 201
 
 
@@ -147,19 +148,24 @@ def test_endpoint1():
 
 
 @user_signed_up
-@app.route("/users/<follower_google_id>/followees", methods=["POST", "GET"])
-def follow_user(current_user: User, follower_google_id: str):
-    if request.method == "POST":
-        if "google_id" not in request.json:
-            return "body must contain google_id", 400
+@app.route("/users/<followee_google_id>/followers", methods=["POST"])
+def follow_user(current_user: User, followee_google_id: str):
+    follower_google_id = current_user.google_id
 
-        if follower_google_id != current_user.google_id:
-            return "Unauthorized to follow on behalf of other users", 401
+    if follower_google_id == followee_google_id:
+        return "cannot follow yourself", 400
+    data_gateway.follow_user(follower_google_id, followee_google_id)
+    return "User followed", 204
 
-        followee_google_id = request.json["google_id"]
-        data_gateway.follow_user(follower_google_id, followee_google_id)
 
-    return data_gateway.read_user(follower_google_id).followees
+@app.route("/users/<followee_google_id>/followers", methods=["GET"])
+def get_followers(followee_google_id):
+    return data_gateway.read_user_followers(followee_google_id)
+
+
+@app.route("/users/<follower_google_id>/followees", methods=["GET"])
+def get_followees(follower_google_id):
+    return data_gateway.read_user_followees(follower_google_id)
 
 
 @user_signed_up
