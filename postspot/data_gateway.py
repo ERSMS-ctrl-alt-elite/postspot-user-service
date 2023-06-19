@@ -27,13 +27,11 @@ class User:
         name: str = None,
         email: str = None,
         account_status: AccountStatus = None,
-        followees = []
     ):
         self.google_id = google_id
         self.name = name
         self.email = email
         self.account_status = account_status
-        self.followees = followees
 
     @staticmethod
     def from_dict(source):
@@ -42,7 +40,6 @@ class User:
             source.get("name"),
             source.get("email"),
             AccountStatus(source.get("account_status")),
-            source.get("followees")
         )
 
     def to_dict(self) -> dict:
@@ -51,7 +48,6 @@ class User:
             "name": self.name,
             "email": self.email,
             "account_status": self.account_status.value,
-            "followees": self.followees,
         }
 
     def __repr__(self):
@@ -119,27 +115,53 @@ class FirestoreGateway(DataGateway):
         doc = doc_ref.get()
         return doc.exists
 
-    def follow_user(self, follower_google_id: str, followee_google_id):
-        doc_ref = self._db.collection("users").document(follower_google_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            raise UserNotFoundError(follower_google_id)
-        if not self._db.collection("users").document(followee_google_id).exists:
-            raise UserNotFoundError(followee_google_id)
 
-        user = User.from_dict(doc.to_dict())
-        followees_set = set(user.followees)
-        followees_set.add(followee_google_id)
-        user.followees = followees_set
-        doc_ref.set(user.to_dict())
+    def follow_user(self, follower_google_id: str, followee_google_id):
+        follower_ref = self._db.collection("users").document(follower_google_id)
+        followee_ref = self._db.collection("users").document(followee_google_id)
+        transaction = self._db.transaction()
+
+        @firestore.transactional
+        def check_users_exist_and_follow(transaction, follower_ref, followee_ref):
+            follower_doc = follower_ref.get(transaction=transaction)
+            if not follower_doc.exists:
+                raise UserNotFoundError(follower_google_id)
+            
+            followee_doc = followee_ref.get(transaction=transaction)
+            if not followee_doc.exists:
+                raise UserNotFoundError(followee_google_id)
+
+            transaction.set(
+                follower_ref.collection("followers").document(followee_google_id),
+                {"exists": True}
+            )
+            
+            transaction.set(
+                followee_ref.collection("followees").document(follower_google_id),
+                {"exists": True}
+            )
+
+        check_users_exist_and_follow(transaction, follower_ref, followee_ref)
 
 
     def unfollow_user(self, follower_google_id: str, followee_google_id):
-        doc_ref = self._db.collection("users").document(follower_google_id)
-        doc = doc_ref.get()
-        if not doc.exists:
-            raise UserNotFoundError(follower_google_id)
+        follower_ref = self._db.collection("users").document(follower_google_id)
+        followee_ref = self._db.collection("users").document(followee_google_id)
+        transaction = self._db.transaction()
 
-        user = User.from_dict(doc.to_dict())
-        user.followees.remove(followee_google_id)
-        doc_ref.set(user.to_dict())
+        @firestore.transactional
+        def delete_follow(transaction, follower_ref, followee_ref):
+            transaction.delete(follower_ref.collection("followers").document(followee_google_id))
+            transaction.delete(followee_ref.collection("followees").document(follower_google_id))
+
+        delete_follow(transaction, follower_ref, followee_ref)
+
+
+    def read_user_followers(self, user_google_id: str):
+        followers = self._db.collection("users").document(user_google_id).collection("followers").list_documents()
+        return [f'/users/{follower.id}' for follower in followers]
+    
+
+    def read_user_followees(self, user_google_id: str):
+        followees = self._db.collection("users").document(user_google_id).collection("followees").list_documents()
+        return [f'/users/{followee.id}' for followee in followees]
