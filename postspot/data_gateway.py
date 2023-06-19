@@ -115,7 +115,6 @@ class FirestoreGateway(DataGateway):
         doc = doc_ref.get()
         return doc.exists
 
-
     def follow_user(self, follower_google_id: str, followee_google_id):
         follower_ref = self._db.collection("users").document(follower_google_id)
         followee_ref = self._db.collection("users").document(followee_google_id)
@@ -126,23 +125,22 @@ class FirestoreGateway(DataGateway):
             follower_doc = follower_ref.get(transaction=transaction)
             if not follower_doc.exists:
                 raise UserNotFoundError(follower_google_id)
-            
+
             followee_doc = followee_ref.get(transaction=transaction)
             if not followee_doc.exists:
                 raise UserNotFoundError(followee_google_id)
 
             transaction.set(
                 follower_ref.collection("followers").document(followee_google_id),
-                {"exists": True}
+                {"exists": True},
             )
-            
+
             transaction.set(
                 followee_ref.collection("followees").document(follower_google_id),
-                {"exists": True}
+                {"exists": True},
             )
 
         check_users_exist_and_follow(transaction, follower_ref, followee_ref)
-
 
     def unfollow_user(self, follower_google_id: str, followee_google_id):
         follower_ref = self._db.collection("users").document(follower_google_id)
@@ -151,17 +149,29 @@ class FirestoreGateway(DataGateway):
 
         @firestore.transactional
         def delete_follow(transaction, follower_ref, followee_ref):
-            transaction.delete(follower_ref.collection("followers").document(followee_google_id))
-            transaction.delete(followee_ref.collection("followees").document(follower_google_id))
+            transaction.delete(
+                follower_ref.collection("followers").document(followee_google_id)
+            )
+            transaction.delete(
+                followee_ref.collection("followees").document(follower_google_id)
+            )
 
         delete_follow(transaction, follower_ref, followee_ref)
 
-
     def read_user_followers(self, user_google_id: str):
-        followers = self._db.collection("users").document(user_google_id).collection("followers").list_documents()
-        return [f'/users/{follower.id}' for follower in followers]
-    
+        followers = (
+            self._db.collection("users")
+            .document(user_google_id)
+            .collection("followers")
+            .list_documents()
+        )
+        return [f"/users/{follower.id}" for follower in followers]
 
     def read_user_followees(self, user_google_id: str):
-        followees = self._db.collection("users").document(user_google_id).collection("followees").list_documents()
-        return [f'/users/{followee.id}' for followee in followees]
+        followees = (
+            self._db.collection("users")
+            .document(user_google_id)
+            .collection("followees")
+            .list_documents()
+        )
+        return [f"/users/{followee.id}" for followee in followees]

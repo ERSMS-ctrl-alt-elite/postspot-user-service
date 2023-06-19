@@ -153,7 +153,7 @@ def follow_user(current_user: User, followee_google_id: str):
     follower_google_id = current_user.google_id
 
     if follower_google_id == followee_google_id:
-        return 'cannot follow yourself ', 400
+        return "cannot follow yourself", 400
     data_gateway.follow_user(follower_google_id, followee_google_id)
     return "User followed", 204
 
@@ -169,7 +169,9 @@ def get_followees(follower_google_id):
 
 
 @user_signed_up
-@app.route("/users/<follower_google_id>/followees/<followee_google_id>", methods=["DELETE"])
+@app.route(
+    "/users/<follower_google_id>/followees/<followee_google_id>", methods=["DELETE"]
+)
 def delete_followee(current_user, follower_google_id, followee_google_id):
     if follower_google_id != current_user.google_id:
         return "Unauthorized to follow on behalf of other users", 401
