@@ -5,8 +5,6 @@ from functools import wraps
 
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
-from apiflask import APIFlask
-
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
