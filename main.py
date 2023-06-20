@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 logger.info(f"Running application in {env.value} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
+app.config['APPLICATION_ROOT'] = '/v1'
 
 # -------------------------- Create database gateway ------------------------- #
 data_gateway = FirestoreGateway()
