@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 logger.info(f"Running application in {env.value} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
-app.config['APPLICATION_ROOT'] = '/v1'
 
 # -------------------------- Create database gateway ------------------------- #
 data_gateway = FirestoreGateway()
@@ -91,12 +90,12 @@ def user_signed_up(function):
 # ---------------------------------------------------------------------------- #
 
 
-@app.route("/")
+@app.route("/v1/")
 def index():
     return "Hello from PostSpot's user service"
 
 
-@app.route("/users", methods=["POST"])
+@app.route("/v1/users", methods=["POST"])
 def signup():
     token = None
 
@@ -125,30 +124,30 @@ def signup():
     return f"User {name} created", 201
 
 
-@app.route("/protected_area", methods=["GET"])
+@app.route("/v1/protected_area", methods=["GET"])
 @user_signed_up
 def protected_area(current_user: User):
     return f"Hello {current_user.name}!"
 
 
-@app.route("/debug/firestore/add", methods=["POST"])
+@app.route("/v1/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
     data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
     data_gateway.add_user("456", "Test2User", "test2@gmail.com", AccountStatus.OPEN)
     return "TestUser added", 201
 
 
-@app.route("/debug/firestore/get", methods=["GET"])
+@app.route("/v1/debug/firestore/get", methods=["GET"])
 def debug_firestore_get():
     return str(data_gateway.read_user("123"))
 
 
-@app.route("/test_endpoint1")
+@app.route("/v1/test_endpoint1")
 def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
-@app.route("/users/<followee_google_id>/followers", methods=["POST"])
+@app.route("/v1/users/<followee_google_id>/followers", methods=["POST"])
 @user_signed_up
 def follow_user(current_user: User, followee_google_id: str):
     follower_google_id = current_user.google_id
@@ -159,19 +158,19 @@ def follow_user(current_user: User, followee_google_id: str):
     return "User followed", 204
 
 
-@app.route("/users/<followee_google_id>/followers", methods=["GET"])
+@app.route("/v1/users/<followee_google_id>/followers", methods=["GET"])
 def get_followers(followee_google_id):
     return data_gateway.read_user_followers(followee_google_id)
 
 
-@app.route("/users/<follower_google_id>/followees", methods=["GET"])
+@app.route("/v1/users/<follower_google_id>/followees", methods=["GET"])
 def get_followees(follower_google_id):
     return data_gateway.read_user_followees(follower_google_id)
 
 
 @user_signed_up
 @app.route(
-    "/users/<follower_google_id>/followees/<followee_google_id>",
+    "/v1/users/<follower_google_id>/followees/<followee_google_id>",
     methods=["DELETE"],
 )
 def delete_followee(current_user, follower_google_id, followee_google_id):

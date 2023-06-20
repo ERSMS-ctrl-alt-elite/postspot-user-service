@@ -131,12 +131,12 @@ class FirestoreGateway(DataGateway):
                 raise UserNotFoundError(followee_google_id)
 
             transaction.set(
-                follower_ref.collection("followers").document(followee_google_id),
+                followee_ref.collection("followers").document(follower_google_id),
                 {"exists": True},
             )
 
             transaction.set(
-                followee_ref.collection("followees").document(follower_google_id),
+                follower_ref.collection("followees").document(followee_google_id),
                 {"exists": True},
             )
 
