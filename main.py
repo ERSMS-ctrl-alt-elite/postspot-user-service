@@ -147,8 +147,8 @@ def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
-@user_signed_up
 @app.route("/users/<followee_google_id>/followers", methods=["POST"])
+@user_signed_up
 def follow_user(current_user: User, followee_google_id: str):
     follower_google_id = current_user.google_id
 
