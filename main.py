@@ -5,6 +5,8 @@ from functools import wraps
 
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
+from apiflask import APIFlask
+
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
@@ -30,6 +32,7 @@ logger = logging.getLogger(__name__)
 logger.info(f"Running application in {env.value} environment")
 app = Flask("PostSpot User Service")
 app.secret_key = "PostSpot123"
+app.config['APPLICATION_ROOT'] = '/v1'
 
 # -------------------------- Create database gateway ------------------------- #
 data_gateway = FirestoreGateway()
