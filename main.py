@@ -100,7 +100,7 @@ def signup():
     token = None
 
     if "Authorization" in request.headers:
-        bearer = request.headers.get("Authorization")
+        bearer = request.headers.get("X-Forwaded-Authorization")
         token = bearer.split()[1]
 
     if not token:
