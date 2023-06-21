@@ -2,14 +2,16 @@ import os
 import logging
 from datetime import datetime
 from functools import wraps
+import re
 
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
+from google.auth import exceptions
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
-from postspot.auth import decode_openid_token
-from postspot.constants import Environment, AccountStatus
+from postspot.auth import decode_openid_token, get_token
+from postspot.constants import Environment, AccountStatus, AUTH_HEADER_NAME
 
 # ---------------------------------------------------------------------------- #
 #                                   App init                                   #
@@ -46,14 +48,12 @@ app.register_blueprint(SWAGGERUI_BLUEPRINT, url_prefix=SWAGGER_URL)
 def user_signed_up(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        token = None
-
-        if "Authorization" in request.headers:
-            bearer = request.headers.get("Authorization")
-            token = bearer.split()[1]
-
-        if not token:
+        if AUTH_HEADER_NAME not in request.headers:
             return jsonify({"message": "Token not provided"}), 401
+        
+        token = get_token(request)
+        if not token:
+            return jsonify({"message": "Invalid token"}), 401
 
         try:
             (
@@ -63,23 +63,26 @@ def user_signed_up(function):
                 token_issued_t,
                 token_expired_t,
             ) = decode_openid_token(token)
-
-            token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
-            token_exp_datetime = datetime.fromtimestamp(token_expired_t)
-            logger.debug(
-                f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
-            )
-            logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
-
-            try:
-                current_user = data_gateway.read_user(google_id)
-            except Exception as e:
-                logger.error(f"User not signed up: {e}")
-                return jsonify({"message": "Invalid token or user not signed up"}), 401
-        except Exception as e:
+        except exceptions.GoogleAuthError as e:
+            logger.error(f"Invalid token - issuer invalid: {e}")
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
+        except ValueError as e:
             logger.error(f"Invalid token: {e}")
             return jsonify({"message": "Invalid token or user not signed up"}), 401
 
+        token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
+        token_exp_datetime = datetime.fromtimestamp(token_expired_t)
+        logger.debug(
+            f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
+        )
+        logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
+
+        if data_gateway.user_exists(google_id):
+            current_user = data_gateway.read_user(google_id)
+        else:
+            logger.error(f"User not signed up: {e}")
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
+        
         return function(current_user, *args, **kwargs)
 
     return wrapper
@@ -90,25 +93,36 @@ def user_signed_up(function):
 # ---------------------------------------------------------------------------- #
 
 
-@app.route("/")
+@app.route("/v1/")
 def index():
     return "Hello from PostSpot's user service"
 
 
-@app.route("/users", methods=["POST"])
+@app.route("/v1/users", methods=["POST"])
 def signup():
-    token = None
-
-    if "Authorization" in request.headers:
-        bearer = request.headers.get("Authorization")
-        token = bearer.split()[1]
-
-    if not token:
+    if AUTH_HEADER_NAME not in request.headers:
         return jsonify({"message": "Token not provided"}), 401
+    
+    token = get_token(request)
+    if not token:
+        return jsonify({"message": "Invalid token"}), 401
 
     logger.debug(f"{token=}")
 
-    google_id, name, email, token_issued_t, token_expired_t = decode_openid_token(token)
+    try:
+        (
+            google_id,
+            name,
+            email,
+            token_issued_t,
+            token_expired_t,
+        ) = decode_openid_token(token)
+    except exceptions.GoogleAuthError as e:
+        logger.error(f"Invalid token - issuer invalid: {e}")
+        return jsonify({"message": "Invalid token or user not signed up"}), 401
+    except ValueError as e:
+        logger.error(f"Invalid token: {e}")
+        return jsonify({"message": "Invalid token or user not signed up"}), 401
 
     if data_gateway.user_exists(google_id):
         logger.error(f"User {name} (google_id={google_id}) already signed up")
@@ -124,54 +138,59 @@ def signup():
     return f"User {name} created", 201
 
 
-@app.route("/protected_area", methods=["GET"])
+@app.route("/v1/protected_area", methods=["GET"])
 @user_signed_up
 def protected_area(current_user: User):
     return f"Hello {current_user.name}!"
 
 
-@app.route("/debug/firestore/add", methods=["POST"])
+@app.route("/v1/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
     data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
+    data_gateway.add_user("456", "Test2User", "test2@gmail.com", AccountStatus.OPEN)
     return "TestUser added", 201
 
 
-@app.route("/debug/firestore/get", methods=["GET"])
+@app.route("/v1/debug/firestore/get", methods=["GET"])
 def debug_firestore_get():
     return str(data_gateway.read_user("123"))
 
 
-@app.route("/test_endpoint1")
+@app.route("/v1/test_endpoint1")
 def test_endpoint1():
     return "Hello from test endpoint 1"
 
 
+@app.route("/v1/users/<followee_google_id>/followers", methods=["POST"])
 @user_signed_up
-@app.route("/users/<follower_google_id>/followees", methods=["POST", "GET"])
-def follow_user(current_user: User, follower_google_id: str):
-    if request.method == "POST":
-        if "google_id" not in request.json:
-            return "body must contain google_id", 400
+def follow_user(current_user: User, followee_google_id: str):
+    follower_google_id = current_user.google_id
 
-        if follower_google_id != current_user.google_id:
-            return "Unauthorized to follow on behalf of other users", 401
-
-        followee_google_id = request.json["google_id"]
-        data_gateway.follow_user(follower_google_id, followee_google_id)
-
-    return data_gateway.read_user(follower_google_id).followees
+    if follower_google_id == followee_google_id:
+        return "cannot follow yourself", 400
+    data_gateway.follow_user(follower_google_id, followee_google_id)
+    return "User followed", 200
 
 
-@user_signed_up
+@app.route("/v1/users/<followee_google_id>/followers", methods=["GET"])
+def get_followers(followee_google_id):
+    return data_gateway.read_user_followers(followee_google_id)
+
+
+@app.route("/v1/users/<follower_google_id>/followees", methods=["GET"])
+def get_followees(follower_google_id):
+    return data_gateway.read_user_followees(follower_google_id)
+
+
 @app.route(
-    "/users/<follower_google_id>/followees/<followee_google_id>",
+    "/v1/users/<followee_google_id>/followers/",
     methods=["DELETE"],
 )
-def delete_followee(current_user, follower_google_id, followee_google_id):
-    if follower_google_id != current_user.google_id:
-        return "Unauthorized to follow on behalf of other users", 401
+@user_signed_up
+def delete_followee(current_user, followee_google_id):
+    follower_google_id = current_user.google_id
     data_gateway.unfollow_user(follower_google_id, followee_google_id)
-    return "User unfollowed", 204
+    return "User unfollowed", 200
 
 
 if __name__ == "__main__":
