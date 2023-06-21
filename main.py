@@ -6,6 +6,7 @@ import re
 
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
+from google.auth import exceptions
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
@@ -62,23 +63,26 @@ def user_signed_up(function):
                 token_issued_t,
                 token_expired_t,
             ) = decode_openid_token(token)
-
-            token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
-            token_exp_datetime = datetime.fromtimestamp(token_expired_t)
-            logger.debug(
-                f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
-            )
-            logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
-
-            try:
-                current_user = data_gateway.read_user(google_id)
-            except Exception as e:
-                logger.error(f"User not signed up: {e}")
-                return jsonify({"message": "Invalid token or user not signed up"}), 401
-        except Exception as e:
+        except exceptions.GoogleAuthError as e:
+            logger.error(f"Invalid token - issuer invalid: {e}")
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
+        except ValueError as e:
             logger.error(f"Invalid token: {e}")
             return jsonify({"message": "Invalid token or user not signed up"}), 401
 
+        token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
+        token_exp_datetime = datetime.fromtimestamp(token_expired_t)
+        logger.debug(
+            f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
+        )
+        logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
+
+        if data_gateway.user_exists(google_id):
+            current_user = data_gateway.read_user(google_id)
+        else:
+            logger.error(f"User not signed up: {e}")
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
+        
         return function(current_user, *args, **kwargs)
 
     return wrapper
@@ -105,7 +109,20 @@ def signup():
 
     logger.debug(f"{token=}")
 
-    google_id, name, email, token_issued_t, token_expired_t = decode_openid_token(token)
+    try:
+        (
+            google_id,
+            name,
+            email,
+            token_issued_t,
+            token_expired_t,
+        ) = decode_openid_token(token)
+    except exceptions.GoogleAuthError as e:
+        logger.error(f"Invalid token - issuer invalid: {e}")
+        return jsonify({"message": "Invalid token or user not signed up"}), 401
+    except ValueError as e:
+        logger.error(f"Invalid token: {e}")
+        return jsonify({"message": "Invalid token or user not signed up"}), 401
 
     if data_gateway.user_exists(google_id):
         logger.error(f"User {name} (google_id={google_id}) already signed up")
