@@ -2,14 +2,15 @@ import os
 import logging
 from datetime import datetime
 from functools import wraps
+import re
 
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 
 from postspot.data_gateway import FirestoreGateway, User
 from postspot.config import Config
-from postspot.auth import decode_openid_token
-from postspot.constants import Environment, AccountStatus
+from postspot.auth import decode_openid_token, get_token
+from postspot.constants import Environment, AccountStatus, AUTH_HEADER_NAME
 
 # ---------------------------------------------------------------------------- #
 #                                   App init                                   #
@@ -46,14 +47,12 @@ app.register_blueprint(SWAGGERUI_BLUEPRINT, url_prefix=SWAGGER_URL)
 def user_signed_up(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
-        token = None
-
-        if "Authorization" in request.headers:
-            bearer = request.headers.get("X-Forwarded-Authorization")
-            token = bearer.split()[1]
-
-        if not token:
+        if AUTH_HEADER_NAME not in request.headers:
             return jsonify({"message": "Token not provided"}), 401
+        
+        token = get_token(request)
+        if not token:
+            return jsonify({"message": "Invalid token"}), 401
 
         try:
             (
@@ -97,14 +96,12 @@ def index():
 
 @app.route("/v1/users", methods=["POST"])
 def signup():
-    token = None
-
-    if "Authorization" in request.headers:
-        bearer = request.headers.get("X-Forwarded-Authorization")
-        token = bearer.split()[1]
-
-    if not token:
+    if AUTH_HEADER_NAME not in request.headers:
         return jsonify({"message": "Token not provided"}), 401
+    
+    token = get_token(request)
+    if not token:
+        return jsonify({"message": "Invalid token"}), 401
 
     logger.debug(f"{token=}")
 
@@ -155,7 +152,7 @@ def follow_user(current_user: User, followee_google_id: str):
     if follower_google_id == followee_google_id:
         return "cannot follow yourself", 400
     data_gateway.follow_user(follower_google_id, followee_google_id)
-    return "User followed", 204
+    return "User followed", 200
 
 
 @app.route("/v1/users/<followee_google_id>/followers", methods=["GET"])

@@ -165,7 +165,7 @@ class FirestoreGateway(DataGateway):
             .collection("followers")
             .list_documents()
         )
-        return [f"/users/{follower.id}" for follower in followers]
+        return [f"/v1/users/{follower.id}" for follower in followers]
 
     def read_user_followees(self, user_google_id: str):
         followees = (
@@ -174,4 +174,4 @@ class FirestoreGateway(DataGateway):
             .collection("followees")
             .list_documents()
         )
-        return [f"/users/{followee.id}" for followee in followees]
+        return [f"/v1/users/{followee.id}" for followee in followees]
