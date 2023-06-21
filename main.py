@@ -165,16 +165,15 @@ def get_followees(follower_google_id):
     return data_gateway.read_user_followees(follower_google_id)
 
 
-@user_signed_up
 @app.route(
-    "/v1/users/<follower_google_id>/followees/<followee_google_id>",
+    "/v1/users/<followee_google_id>/followers/",
     methods=["DELETE"],
 )
-def delete_followee(current_user, follower_google_id, followee_google_id):
-    if follower_google_id != current_user.google_id:
-        return "Unauthorized to follow on behalf of other users", 401
+@user_signed_up
+def delete_followee(current_user, followee_google_id):
+    follower_google_id = current_user.google_id
     data_gateway.unfollow_user(follower_google_id, followee_google_id)
-    return "User unfollowed", 204
+    return "User unfollowed", 200
 
 
 if __name__ == "__main__":
