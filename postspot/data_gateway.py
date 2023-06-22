@@ -100,7 +100,6 @@ class FirestoreGateway(DataGateway):
         logger.debug("User added")
 
     def read_user(self, google_id: str) -> User:
-        logger.debug(f"Reading user {google_id}")
         doc_ref = self._db.collection("users").document(google_id)
         doc = doc_ref.get()
 
@@ -150,10 +149,10 @@ class FirestoreGateway(DataGateway):
         @firestore.transactional
         def delete_follow(transaction, follower_ref, followee_ref):
             transaction.delete(
-                follower_ref.collection("followers").document(followee_google_id)
+                follower_ref.collection("followers").document(follower_google_id)
             )
             transaction.delete(
-                followee_ref.collection("followees").document(follower_google_id)
+                followee_ref.collection("followees").document(followee_google_id)
             )
 
         delete_follow(transaction, follower_ref, followee_ref)
