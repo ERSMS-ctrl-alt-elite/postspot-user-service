@@ -154,8 +154,7 @@ def protected_area(current_user: User):
 
 @app.route("/v1/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
-    data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
-    data_gateway.add_user("456", "Test2User", "test2@gmail.com", AccountStatus.OPEN)
+    data_gateway.add_user("magdalut", "Name magdalut", "magdalut@gmail.com", AccountStatus.OPEN)
     return "TestUser added", 201
 
 
