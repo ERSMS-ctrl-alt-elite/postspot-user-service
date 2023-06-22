@@ -4,6 +4,7 @@ import requests
 import re
 
 from google.oauth2 import id_token
+from google.auth import exceptions
 import google.auth.transport.requests
 from pip._vendor import cachecontrol
 
@@ -20,9 +21,14 @@ def decode_openid_token(token) -> tuple:
 
     logger.debug(f"{request_session=} {cached_session=} {token_request=}")
 
-    id_info = id_token.verify_firebase_token(
-        id_token=token, request=token_request, audience=os.environ["CLIENT_ID"]
-    )
+    try:
+        id_info = id_token.verify_oauth2_token(
+            id_token=token, request=token_request, audience=os.environ["CLIENT_ID"]
+        )
+    except exceptions.GoogleAuthError as e:
+        id_info = id_token.verify_firebase_token(
+            id_token=token, request=token_request, audience=os.environ["CLIENT_ID"]
+        )
 
     logger.debug(f"{id_info=}")
 
