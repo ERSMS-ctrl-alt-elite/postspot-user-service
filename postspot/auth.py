@@ -25,14 +25,16 @@ def decode_openid_token(token) -> tuple:
         id_info = id_token.verify_oauth2_token(
             id_token=token, request=token_request, audience=os.environ["CLIENT_ID"]
         )
+        google_id = id_info.get("sub")
     except exceptions.GoogleAuthError as e:
         id_info = id_token.verify_firebase_token(
             id_token=token, request=token_request, audience="postspot-prod"
         )
+        google_id = id_info.get("firebase").get("identities").get("google.com")[0]
 
     logger.debug(f"{id_info=}")
 
-    google_id = id_info.get("sub")
+
     name = id_info.get("name")
     email = id_info.get("email")
     token_issue_t = id_info.get("iat")
