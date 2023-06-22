@@ -149,10 +149,10 @@ class FirestoreGateway(DataGateway):
         @firestore.transactional
         def delete_follow(transaction, follower_ref, followee_ref):
             transaction.delete(
-                follower_ref.collection("followers").document(follower_google_id)
+                followee_ref.collection("followers").document(follower_google_id)
             )
             transaction.delete(
-                followee_ref.collection("followees").document(followee_google_id)
+                follower_ref.collection("followees").document(followee_google_id)
             )
 
         delete_follow(transaction, follower_ref, followee_ref)
