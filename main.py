@@ -141,7 +141,7 @@ def signup():
 @app.route("/v1/users/<user_google_id>", methods=["GET"])
 def get_user(user_google_id):
     try:
-        return data_gateway.read_user(user_google_id), 200
+        return data_gateway.read_user(user_google_id).to_dict(), 200
     except UserNotFoundError as e:
         return "User not found", 404
 
