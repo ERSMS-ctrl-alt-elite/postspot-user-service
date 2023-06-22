@@ -183,7 +183,7 @@ def get_followees(follower_google_id):
 
 
 @app.route(
-    "/v1/users/<followee_google_id>/followers/",
+    "/v1/users/<followee_google_id>/followers",
     methods=["DELETE"],
 )
 @user_signed_up

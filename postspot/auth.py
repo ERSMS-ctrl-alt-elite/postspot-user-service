@@ -20,7 +20,7 @@ def decode_openid_token(token) -> tuple:
 
     logger.debug(f"{request_session=} {cached_session=} {token_request=}")
 
-    id_info = id_token.verify_oauth2_token(
+    id_info = id_token.verify_firebase_token(
         id_token=token, request=token_request, audience=os.environ["CLIENT_ID"]
     )
 
