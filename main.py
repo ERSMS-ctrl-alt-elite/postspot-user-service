@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 from google.auth import exceptions
 
-from postspot.data_gateway import FirestoreGateway, User
+from postspot.data_gateway import FirestoreGateway, User, UserNotFoundError
 from postspot.config import Config
 from postspot.auth import decode_openid_token, get_token
 from postspot.constants import Environment, AccountStatus, AUTH_HEADER_NAME
@@ -136,6 +136,14 @@ def signup():
     )
 
     return f"User {name} created", 201
+
+
+@app.route("/v1/users/<user_google_id>", methods=["GET"])
+def get_user(user_google_id):
+    try:
+        return data_gateway.read_user(user_google_id), 200
+    except UserNotFoundError as e:
+        return "User not found", 404
 
 
 @app.route("/v1/protected_area", methods=["GET"])
