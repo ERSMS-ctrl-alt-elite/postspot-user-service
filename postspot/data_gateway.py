@@ -162,7 +162,7 @@ class FirestoreGateway(DataGateway):
         if not users:
             return []
         query = self._db.collection("users").where('google_id', "in", users).stream()
-        return [User.from_dict(user_doc.to_dict()).to_dict() for user_doc in query]
+        return {"user": [User.from_dict(user_doc.to_dict()).to_dict() for user_doc in query]}
 
     def read_user_followers(self, user_google_id: str):
         followers = (
