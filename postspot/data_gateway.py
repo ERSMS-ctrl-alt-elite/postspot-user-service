@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Iterable, List
 
 from google.cloud import firestore
 
@@ -158,6 +158,12 @@ class FirestoreGateway(DataGateway):
 
         delete_follow(transaction, follower_ref, followee_ref)
 
+    def _get_users_names_and_id(self, users: Iterable):
+        if not users:
+            return []
+        query = self._db.collection("users").where('google_id', "in", users).stream()
+        return {"user": [User.from_dict(user_doc.to_dict()).to_dict() for user_doc in query]}
+
     def read_user_followers(self, user_google_id: str):
         followers = (
             self._db.collection("users")
@@ -165,8 +171,8 @@ class FirestoreGateway(DataGateway):
             .collection("followers")
             .list_documents()
         )
-        return [f"/v1/users/{follower.id}" for follower in followers]
-
+        return self._get_users_names_and_id([follower.id for follower in followers])
+         
     def read_user_followees(self, user_google_id: str):
         followees = (
             self._db.collection("users")
@@ -174,4 +180,4 @@ class FirestoreGateway(DataGateway):
             .collection("followees")
             .list_documents()
         )
-        return [f"/v1/users/{followee.id}" for followee in followees]
+        return self._get_users_names_and_id([followee.id for followee in followees])

@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 from google.auth import exceptions
 
-from postspot.data_gateway import FirestoreGateway, User
+from postspot.data_gateway import FirestoreGateway, User, UserNotFoundError
 from postspot.config import Config
 from postspot.auth import decode_openid_token, get_token
 from postspot.constants import Environment, AccountStatus, AUTH_HEADER_NAME
@@ -138,6 +138,14 @@ def signup():
     return f"User {name} created", 201
 
 
+@app.route("/v1/users/<user_google_id>", methods=["GET"])
+def get_user(user_google_id):
+    try:
+        return data_gateway.read_user(user_google_id).to_dict(), 200
+    except UserNotFoundError as e:
+        return "User not found", 404
+
+
 @app.route("/v1/protected_area", methods=["GET"])
 @user_signed_up
 def protected_area(current_user: User):
@@ -146,8 +154,7 @@ def protected_area(current_user: User):
 
 @app.route("/v1/debug/firestore/add", methods=["POST"])
 def debug_firestore_add():
-    data_gateway.add_user("123", "TestUser", "test@gmail.com", AccountStatus.OPEN)
-    data_gateway.add_user("456", "Test2User", "test2@gmail.com", AccountStatus.OPEN)
+    data_gateway.add_user("magdalut", "Name magdalut", "magdalut@gmail.com", AccountStatus.OPEN)
     return "TestUser added", 201
 
 
@@ -183,7 +190,7 @@ def get_followees(follower_google_id):
 
 
 @app.route(
-    "/v1/users/<followee_google_id>/followers/",
+    "/v1/users/<followee_google_id>/followers",
     methods=["DELETE"],
 )
 @user_signed_up
